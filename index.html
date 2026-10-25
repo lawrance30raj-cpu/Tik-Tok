@@ -32,11 +32,12 @@
             gap: 10px;
         }
         .message {
-            max-width: 80%;
+            max-width: 85%;
             padding: 12px 16px;
             border-radius: 15px;
             font-size: 1rem;
             line-height: 1.4;
+            word-wrap: break-word;
         }
         .user-message {
             background: #007bff;
@@ -88,10 +89,10 @@
 <body>
 
     <header>🎙️ ஜமுனா AI உதவி</header>
-    <div id="status">நிலை: செயலቁ இல்லை</div>
+    <div id="status">நிலை: தயார் நிலையில் உள்ளது</div>
     
     <div id="chat-container">
-        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. நீங்கள் என்னிடம் என்ன வேண்டுமானாலும் கேட்கலாம்.</div>
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. நீங்கள் என்னிடம் என்ன கேள்வி வேண்டுமானாலும் கேட்கலாம், இணையத்தில் தேடிப் பதில் அளிக்கிறேன்.</div>
     </div>
 
     <div id="controls">
@@ -112,6 +113,7 @@
             msgDiv.innerText = text;
             chatContainer.appendChild(msgDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            return msgDiv;
         }
 
         function speak(text) {
@@ -120,50 +122,74 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ta-IN';
                 
-                // ஆண் குரலைத் தேர்ந்தெடுக்க முயல்வது
                 const voices = window.speechSynthesis.getVoices();
                 const maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Rishi') || v.name.includes('Valluvar') || v.lang.includes('ta'));
                 if (maleVoice) {
                     utterance.voice = maleVoice;
                 }
                 
-                utterance.pitch = 0.9; // சற்று ஆழமான குரல் (Male touch)
-                utterance.rate = 1.0;
+                utterance.pitch = 0.85; // ஆழமான ஆண் குரல்
+                utterance.rate = 0.95;
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        function getSmartAnswer(query) {
-            query = query.toLowerCase();
-            let reply = "மன்னிக்கவும், இதற்கான சரியான தகவல் கிடைக்கவில்லை.";
+        async function searchAndAnswer(query) {
+            statusDiv.innerText = "நிலை: இணையத்தில் தேடுகிறது...";
+            const tempMessage = appendMessage("இணையத்தில் தகவல் தேடப்படுகிறது...", 'ai');
+            
+            try {
+                // விக்கிபீடியா & திறந்தநிலை API மூலம் நேரடி இணையத் தேடல் (Live Internet Search)
+                const searchUrl = `https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`;
+                const response = await fetch(searchUrl);
+                const data = await response.json();
+                
+                let answerText = "";
+                
+                if (data.query && data.query.search && data.query.search.length > 0) {
+                    // தேடல் முடிவிலிருந்துHTML டேகுகளை நீக்கி சுத்தமான உரையைப் பெறுதல்
+                    let rawSnippet = data.query.search[0].snippet;
+                    let cleanSnippet = rawSnippet.replace(/<\/?[^>]+(>|$)/g, "");
+                    answerText = cleanSnippet;
+                } else {
+                    // தமிழ் முடிவுகள் இல்லையெனில் ஆங்கில விக்கிபீடியாவில் தேடி விடை எடுத்தல்
+                    const enUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`;
+                    const enResponse = await fetch(enUrl);
+                    const enData = await enResponse.json();
+                    
+                    if (enData.query && enData.query.search && enData.query.search.length > 0) {
+                        let cleanEnSnippet = enData.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
+                        answerText = "தகவல்: " + cleanEnSnippet;
+                    } else {
+                        answerText = "மன்னிக்கவும், நீங்கள் கேட்ட '" + query + "' பற்றிய தகவல் இணையத்தில் உடனடியாகக் கிடைக்கவில்லை.";
+                    }
+                }
 
-            // எளிய அறிவுசார் பதில்கள் (Smart responses)
-            if (query.includes('பெயர் என்ன') || query.includes('who are you')) {
-                reply = "என் பெயர் ஜமுனா. உங்கள் குரல் வழி உதவியாளர்.";
-            } else if (query.includes('எப்படி இருக்க') || query.includes('how are you')) {
-                reply = "நான் நலமாக இருக்கிறேன். உங்களுக்கு எப்படி உதவ வேண்டும்?";
-            } else if (query.includes('வணக்கம்') || query.includes('hello') || query.includes('hi'))  {
-                reply = "வணக்கம்! சொல்லுங்கள், நான் உங்களைக் கேட்கிறேன்.";
-            } else if (query.includes('время') || query.includes('시간') || query.includes('név') || query.length > 0) {
-                // பொதுவான கேள்விகளுக்கு புத்திசாலித்தனமான பதில்
-                reply = "நீங்கள் கேட்ட '" + query + "' என்ற கேள்விக்கான தகவலைச் சரிபார்த்துவிட்டேன். சொல்லுங்கள், இதில் உங்களுக்கு மேலதிகமாக என்ன உதவி வேண்டும்?";
+                tempMessage.innerText = answerText;
+                statusDiv.innerText = "நிலை: பதிலளிக்கிறது...";
+                speak(answerText);
+
+            } catch (error) {
+                tempMessage.innerText = "மன்னிக்கவும், இணையத் தேடலின் போது சிறிய பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.";
+                speak(tempMessage.innerText);
+            } finally {
+                setTimeout(() => {
+                    if (!isListening) statusDiv.innerText = "நிலை: தயார் நிலையில் உள்ளது";
+                }, 2000);
             }
-
-            appendMessage(reply, 'ai');
-            speak(reply);
         }
 
         function startListening() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை. கூகுள் க்ரோம் (Chrome) பயன்படுத்தவும்.");
+                alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை.");
                 return;
             }
 
             if (isListening) return;
 
             recognition = new SpeechRecognition();
-            recognition.lang = 'ta-IN'; // தமிழ், மற்றும் பிற மொழிகளை அங்கீகரிக்க
+            recognition.lang = 'ta-IN';
             recognition.continuous = false;
             recognition.interimResults = false;
 
@@ -175,17 +201,16 @@
             recognition.onresult = function(event) {
                 const speechResult = event.results[0][0].transcript;
                 appendMessage(speechResult, 'user');
-                getSmartAnswer(speechResult);
+                searchAndAnswer(speechResult);
             };
 
             recognition.onerror = function(event) {
-                statusDiv.innerText = "நிலை: பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.";
+                statusDiv.innerText = "நிலை: குரலைப் புரிந்துகொள்வதில் பிழை.";
+                isListening = false;
             };
 
             recognition.onend = function() {
                 isListening = false;
-                statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது";
-                // தொடர்ந்து கேட்கும் வசதிக்காக ஆட்டோ ரீஸ்டார்ட் செய்ய விரும்பினால் இங்கே அமைக்கலாம்
             };
 
             try {
@@ -202,6 +227,13 @@
             isListening = false;
             statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது";
             window.speechSynthesis.cancel();
+        }
+
+        // குரல்கள் சரியாக லோட் ஆவதை உறுதி செய்ய
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                window.speechSynthesis.getVoices();
+            };
         }
     </script>
 </body>
