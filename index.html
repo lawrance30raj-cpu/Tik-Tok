@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #134e5e, #71b280);
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
             color: #fff;
             margin: 0;
             padding: 0;
@@ -16,7 +16,7 @@
             height: 100vh;
         }
         header {
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             padding: 15px;
             text-align: center;
             font-size: 1.4rem;
@@ -52,7 +52,7 @@
         }
         #controls {
             padding: 20px;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -77,19 +77,18 @@
             text-align: center;
             padding: 8px;
             font-size: 0.9rem;
-            background: rgba(0,0,0,0.2);
-            color: #ffeb3b;
+            background: rgba(0,0,0,0.3);
+            color: #00ffcc;
         }
     </style>
 </head>
 <body>
 
-    <header>🎙️ ஜமுனா AI - இயல்பான உரையாடல்</header>
+    <header>🎙️ ஜமுனா AI - நேரடி உரையாடல்</header>
     <div id="status">நிலை: ஆன் செய்ய 'ON' அழுத்தவும்</div>
     
     <div id="chat-container">
-        ...
-        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. நீங்கள் என்னிடம் சாதாரணமாய் பேசுவது போல எதைக் கேட்டாலும் நான் பதிலளிக்கிறேன். சொல்லுங்கள்!</div>
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. ஆன் செய்துவிட்டு என்னிடம் இயல்பாகப் பேசுங்கள், நான் பதிலளிக்கிறேன்.</div>
     </div>
 
     <div id="controls">
@@ -131,31 +130,32 @@
 
         async function processQuery(query) {
             statusDiv.innerText = "நிலை: யோசித்து பதிலளிக்கிறது...";
-            
-            // பொதுவான மற்றும் இயல்பான உரையாடல் பதில்கள்
-            let q = query.toLowerCase();
+            let q = query.toLowerCase().trim();
             let reply = "";
 
-            if (q.includes('பெயர்') || q.includes('who are you')) {
-                reply = "என் பெயர் ஜமுனா. உங்களோடு பேசத்தான் நான் இருக்கேன்.";
+            // தனிப்பட்ட மற்றும் இயல்பான உரையாடல்களுக்கான பதில்கள்
+            if (q.includes('பெயர்') || q.includes('name')) {
+                reply = "என் பெயர் ஜமுனா. உங்களுடன் பேசுவதற்காக உருவாக்கப்பட்ட குரல் உதவியாளர்.";
             } else if (q.includes('எப்படி இருக்க') || q.includes('how are you')) {
-                reply = "நான் சூப்பரா இருக்கேன்! நீங்கள் எப்படி இருக்கீங்க? சொல்லுங்க என்ன விஷயம்?";
-            } else if (q.includes('சாப்பிட்டீங்களா') || q.includes('சாப்பாடு')) {
-                reply = "நான் ஒரு AI அசிஸ்டன்ட், எனக்கு சாப்பாடெல்லாம் தேவையில்லை தோழா! நீங்க சாப்பிட்டீங்களா?";
+                reply = "நான் ரொம்ப நல்லா இருக்கேன் தோழா! சொல்லுங்க, உங்களுக்கு என்ன உதவி செய்யணும்?";
+            } else if (q.includes('पीसीओडी') || q.includes('pcod') || q.includes('பிசிஓடி')) {
+                reply = "PCOD என்பது பெண்களின் ஹார்மோன் மாற்றங்களால் ஏற்படும் ஒரு உடல்நலப் பிரச்சினை ஆகும். இது மாதவிடாய் சுழற்சியைப் பாதிக்கலாம்.";
+            } else if (q.includes('फुल फॉर्म') || q.includes('full form') || q.includes('ஃபுல் பார்ம்')) {
+                reply = "நீங்கள் எந்த வார்த்தையின் முழு வடிவம் (Full Form) கேட்கிறீர்கள் என்பதைத் தெளிவாகச் சொன்னால் என்னால் சொல்ல முடியும்.";
             } else if (q.includes('வணக்கம்') || q.includes('ஹலோ') || q.includes('hi')) {
-                reply = "வணக்கம்! சொல்லுங்க, என்னைப் பற்றி என்ன தெரிஞ்சிக்கணும்?";
+                reply = "வணக்கம்! சொல்லுங்க, என்ன பேசலாம்?";
             } else {
-                // இணையத்தில் தேடி பதitsu தருவது
+                // இணையத்தில் தேடுதல்
                 try {
                     const res = await fetch(`https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
                     const data = await res.json();
                     if (data.query && data.query.search.length > 0) {
                         reply = data.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
                     } else {
-                        reply = "நீங்கள் சொன்ன '" + query + "' பத்தி எனக்குப் புரியும் வகையில சொல்லுங்க, இல்லனா வேற ஏதாவது கேளுங்க.";
+                        reply = "நீங்கள் கேட்ட '" + query + "' என்ற கேள்விக்கான விவரங்கள் எனக்குப் புரியும்படி சுருக்கமாகச் சொல்லுங்கள், நான் பதிலளிக்கிறேன்.";
                     }
                 } catch(e) {
-                    reply = "மன்னிக்கவும், நெட்வொர்க் ஸ்லோவா இருக்கு. திரும்பவும் சொல்லுங்க.";
+                    reply = "மன்னிக்கவும், நெட்வொர்க் சிறிய தாமதம். மீண்டும் சொல்லுங்கள்.";
                 }
             }
 
