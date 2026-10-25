@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background: linear-gradient(135deg, #134e5e, #71b280);
             color: #fff;
             margin: 0;
             padding: 0;
@@ -19,9 +19,8 @@
             background: rgba(0, 0, 0, 0.3);
             padding: 15px;
             text-align: center;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
         #chat-container {
             flex: 1;
@@ -29,14 +28,14 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         .message {
             max-width: 85%;
             padding: 12px 16px;
             border-radius: 15px;
             font-size: 1rem;
-            line-height: 1.4;
+            line-height: 1.5;
             word-wrap: break-word;
         }
         .user-message {
@@ -59,13 +58,12 @@
             align-items: center;
         }
         button {
-            padding: 12px 25px;
+            padding: 12px 30px;
             font-size: 1.1rem;
             font-weight: bold;
             border: none;
             border-radius: 30px;
             cursor: pointer;
-            transition: 0.3s;
         }
         #start-btn {
             background: #28a745;
@@ -75,165 +73,144 @@
             background: #dc3545;
             color: white;
         }
-        button:active {
-            transform: scale(0.95);
-        }
         #status {
             text-align: center;
             padding: 8px;
             font-size: 0.9rem;
             background: rgba(0,0,0,0.2);
+            color: #ffeb3b;
         }
     </style>
 </head>
 <body>
 
-    <header>🎙️ ஜமுனா AI உதவி</header>
-    <div id="status">நிலை: தயார் நிலையில் உள்ளது</div>
+    <header>🎙️ ஜமுனா AI - இயல்பான உரையாடல்</header>
+    <div id="status">நிலை: ஆன் செய்ய 'ON' அழுத்தவும்</div>
     
     <div id="chat-container">
-        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. நீங்கள் என்னிடம் என்ன கேள்வி வேண்டுமானாலும் கேட்கலாம், இணையத்தில் தேடிப் பதில் அளிக்கிறேன்.</div>
+        ...
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. நீங்கள் என்னிடம் சாதாரணமாய் பேசுவது போல எதைக் கேட்டாலும் நான் பதிலளிக்கிறேன். சொல்லுங்கள்!</div>
     </div>
 
     <div id="controls">
-        <button id="start-btn" onclick="startListening()">ON (தொடங்கு)</button>
-        <button id="stop-btn" onclick="stopListening()">OFF (நிறுத்து)</button>
+        <button id="start-btn" onclick="startChat()">ON (தொடங்கு)</button>
+        <button id="stop-btn" onclick="stopChat()">OFF (நிறுத்து)</button>
     </div>
 
     <script>
         const chatContainer = document.getElementById('chat-container');
         const statusDiv = document.getElementById('status');
         let recognition;
-        let isListening = false;
+        let active = false;
 
-        function appendMessage(text, sender) {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('message');
-            msgDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
-            msgDiv.innerText = text;
-            chatContainer.appendChild(msgDiv);
+        function addMsg(text, sender) {
+            const div = document.createElement('div');
+            div.className = `message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
+            div.innerText = text;
+            chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            return msgDiv;
+            return div;
         }
 
-        function speak(text) {
+        function speak(text, callback) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ta-IN';
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'ta-IN';
+                utter.pitch = 0.9;
+                utter.rate = 1.0;
                 
-                const voices = window.speechSynthesis.getVoices();
-                const maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Rishi') || v.name.includes('Valluvar') || v.lang.includes('ta'));
-                if (maleVoice) {
-                    utterance.voice = maleVoice;
-                }
-                
-                utterance.pitch = 0.85; // ஆழமான ஆண் குரல்
-                utterance.rate = 0.95;
-                window.speechSynthesis.speak(utterance);
+                utter.onend = function() {
+                    if (callback) callback();
+                };
+                window.speechSynthesis.speak(utter);
+            } else {
+                if (callback) callback();
             }
         }
 
-        async function searchAndAnswer(query) {
-            statusDiv.innerText = "நிலை: இணையத்தில் தேடுகிறது...";
-            const tempMessage = appendMessage("இணையத்தில் தகவல் தேடப்படுகிறது...", 'ai');
+        async function processQuery(query) {
+            statusDiv.innerText = "நிலை: யோசித்து பதிலளிக்கிறது...";
             
-            try {
-                // விக்கிபீடியா & திறந்தநிலை API மூலம் நேரடி இணையத் தேடல் (Live Internet Search)
-                const searchUrl = `https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`;
-                const response = await fetch(searchUrl);
-                const data = await response.json();
-                
-                let answerText = "";
-                
-                if (data.query && data.query.search && data.query.search.length > 0) {
-                    // தேடல் முடிவிலிருந்துHTML டேகுகளை நீக்கி சுத்தமான உரையைப் பெறுதல்
-                    let rawSnippet = data.query.search[0].snippet;
-                    let cleanSnippet = rawSnippet.replace(/<\/?[^>]+(>|$)/g, "");
-                    answerText = cleanSnippet;
-                } else {
-                    // தமிழ் முடிவுகள் இல்லையெனில் ஆங்கில விக்கிபீடியாவில் தேடி விடை எடுத்தல்
-                    const enUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`;
-                    const enResponse = await fetch(enUrl);
-                    const enData = await enResponse.json();
-                    
-                    if (enData.query && enData.query.search && enData.query.search.length > 0) {
-                        let cleanEnSnippet = enData.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
-                        answerText = "தகவல்: " + cleanEnSnippet;
+            // பொதுவான மற்றும் இயல்பான உரையாடல் பதில்கள்
+            let q = query.toLowerCase();
+            let reply = "";
+
+            if (q.includes('பெயர்') || q.includes('who are you')) {
+                reply = "என் பெயர் ஜமுனா. உங்களோடு பேசத்தான் நான் இருக்கேன்.";
+            } else if (q.includes('எப்படி இருக்க') || q.includes('how are you')) {
+                reply = "நான் சூப்பரா இருக்கேன்! நீங்கள் எப்படி இருக்கீங்க? சொல்லுங்க என்ன விஷயம்?";
+            } else if (q.includes('சாப்பிட்டீங்களா') || q.includes('சாப்பாடு')) {
+                reply = "நான் ஒரு AI அசிஸ்டன்ட், எனக்கு சாப்பாடெல்லாம் தேவையில்லை தோழா! நீங்க சாப்பிட்டீங்களா?";
+            } else if (q.includes('வணக்கம்') || q.includes('ஹலோ') || q.includes('hi')) {
+                reply = "வணக்கம்! சொல்லுங்க, என்னைப் பற்றி என்ன தெரிஞ்சிக்கணும்?";
+            } else {
+                // இணையத்தில் தேடி பதitsu தருவது
+                try {
+                    const res = await fetch(`https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
+                    const data = await res.json();
+                    if (data.query && data.query.search.length > 0) {
+                        reply = data.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
                     } else {
-                        answerText = "மன்னிக்கவும், நீங்கள் கேட்ட '" + query + "' பற்றிய தகவல் இணையத்தில் உடனடியாகக் கிடைக்கவில்லை.";
+                        reply = "நீங்கள் சொன்ன '" + query + "' பத்தி எனக்குப் புரியும் வகையில சொல்லுங்க, இல்லனா வேற ஏதாவது கேளுங்க.";
                     }
+                } catch(e) {
+                    reply = "மன்னிக்கவும், நெட்வொர்க் ஸ்லோவா இருக்கு. திரும்பவும் சொல்லுங்க.";
                 }
-
-                tempMessage.innerText = answerText;
-                statusDiv.innerText = "நிலை: பதிலளிக்கிறது...";
-                speak(answerText);
-
-            } catch (error) {
-                tempMessage.innerText = "மன்னிக்கவும், இணையத் தேடலின் போது சிறிய பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.";
-                speak(tempMessage.innerText);
-            } finally {
-                setTimeout(() => {
-                    if (!isListening) statusDiv.innerText = "நிலை: தயார் நிலையில் உள்ளது";
-                }, 2000);
             }
+
+            addMsg(reply, 'ai');
+            speak(reply, () => {
+                if (active) listenVoice();
+            });
         }
 
-        function startListening() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை.");
+        function listenVoice() {
+            if (!active) return;
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                alert("உங்கள் பிரவுசர் குரலை ஆதரிக்கவில்லை.");
                 return;
             }
 
-            if (isListening) return;
-
-            recognition = new SpeechRecognition();
+            recognition = new SpeechRec();
             recognition.lang = 'ta-IN';
             recognition.continuous = false;
             recognition.interimResults = false;
 
             recognition.onstart = function() {
-                isListening = true;
-                statusDiv.innerText = "நிலை: கேட்டுக் கொண்டிருக்கிறது...";
+                statusDiv.innerText = "நிலை: உங்களைக் கவனமாகக் கேட்டுக்கொண்டிருக்கிறது...";
             };
 
-            recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript;
-                appendMessage(speechResult, 'user');
-                searchAndAnswer(speechResult);
+            recognition.onresult = function(e) {
+                const text = e.results[0][0].transcript;
+                addMsg(text, 'user');
+                processQuery(text);
             };
 
-            recognition.onerror = function(event) {
-                statusDiv.innerText = "நிலை: குரலைப் புரிந்துகொள்வதில் பிழை.";
-                isListening = false;
-            };
-
-            recognition.onend = function() {
-                isListening = false;
+            recognition.onerror = function() {
+                if (active) setTimeout(listenVoice, 1000);
             };
 
             try {
                 recognition.start();
-            } catch (e) {
-                console.log(e);
+            } catch(err) {
+                console.log(err);
             }
         }
 
-        function stopListening() {
-            if (recognition) {
-                recognition.stop();
-            }
-            isListening = false;
-            statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது";
+        function startChat() {
+            if (active) return;
+            active = true;
+            statusDiv.innerText = "நிலை: உரையாடல் தொடங்கியது...";
+            listenVoice();
+        }
+
+        function stopChat() {
+            active = false;
+            if (recognition) recognition.stop();
             window.speechSynthesis.cancel();
-        }
-
-        // குரல்கள் சரியாக லோட் ஆவதை உறுதி செய்ய
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.onvoiceschanged = function() {
-                window.speechSynthesis.getVoices();
-            };
+            statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது.";
         }
     </script>
 </body>
