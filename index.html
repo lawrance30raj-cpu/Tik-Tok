@@ -3,249 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jamuna AI Voice Assistant</title>
-    <!-- PWA Manifest Link (உங்களது சர்வரில் ஹோஸ்ட் செய்யும்போது வேலை செய்யும்) -->
-    <link rel="manifest" href="manifest.json">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Jamuna AI - Voice Assistant</title>
     <style>
-        * {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #fff;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 650px;
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(15px);
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            height: 100vh;
         }
-
-        .header {
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 12px;
-        }
-
-        .header h1 {
-            font-size: 1.8rem;
-            color: #00d2ff;
-        }
-
-        .header p {
-            font-size: 0.85rem;
-            color: #aaa;
-            margin-top: 5px;
-        }
-
-        .chat-box {
-            height: 300px;
-            overflow-y: auto;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.2);
+        header {
+            background: rgba(0, 0, 0, 0.3);
             padding: 15px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
-
         .message {
             max-width: 80%;
-            padding: 10px 15px;
-            border-radius: 12px;
-            font-size: 0.95rem;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 1rem;
             line-height: 1.4;
         }
-
         .user-message {
-            align-self: flex-end;
-            background: #0084ff;
+            background: #007bff;
             color: white;
+            align-self: flex-end;
             border-bottom-right-radius: 2px;
         }
-
         .ai-message {
+            background: #ffffff;
+            color: #333;
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.15);
-            color: #e0e0e0;
             border-bottom-left-radius: 2px;
         }
-
-        .controls {
+        #controls {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
             display: flex;
-            justify-content: center;
-            gap: 15px;
+            justify-content: space-around;
             align-items: center;
         }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 25px;
-            border: none;
-            font-size: 1rem;
-            cursor: pointer;
+        button {
+            padding: 12px 25px;
+            font-size: 1.1rem;
             font-weight: bold;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
             transition: 0.3s;
         }
-
-        .btn-start {
-            background: #00d2ff;
-            color: #000;
+        #start-btn {
+            background: #28a745;
+            color: white;
         }
-
-        .btn-stop {
-            background: #ff416c;
-            color: #fff;
+        #stop-btn {
+            background: #dc3545;
+            color: white;
         }
-
-        .btn:hover {
-            transform: scale(1.05);
+        button:active {
+            transform: scale(0.95);
         }
-
-        .status {
+        #status {
             text-align: center;
+            padding: 8px;
             font-size: 0.9rem;
-            color: #00d2ff;
+            background: rgba(0,0,0,0.2);
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-robot"></i> ஜமுனா AI உதவி</h1>
-            <p>தமிழ், English, हिन्दी, తెలుగు, മലയാളം, ಕನ್ನಡ</p>
-        </div>
+    <header>🎙️ ஜமுனா AI உதவி</header>
+    <div id="status">நிலை: செயலቁ இல்லை</div>
+    
+    <div id="chat-container">
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. நீங்கள் என்னிடம் என்ன வேண்டுமானாலும் கேட்கலாம்.</div>
+    </div>
 
-        <div class="chat-box" id="chatBox">
-            <div class="message ai-message">
-                வணக்கம்! Start பட்டனை அழுத்திப் பேசுங்கள்.
-            </div>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-start" onclick="startAssistant()">ON (தொடங்கு)</button>
-            <button class="btn btn-stop" onclick="stopAssistant()">OFF (நிறுத்து)</button>
-        </div>
-
-        <div class="status" id="statusText">நிலை: ஆஃப் செய்யப்பட்டுள்ளது</div>
+    <div id="controls">
+        <button id="start-btn" onclick="startListening()">ON (தொடங்கு)</button>
+        <button id="stop-btn" onclick="stopListening()">OFF (நிறுத்து)</button>
     </div>
 
     <script>
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const chatContainer = document.getElementById('chat-container');
+        const statusDiv = document.getElementById('status');
         let recognition;
-        let isRunning = false;
+        let isListening = false;
 
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = true; // தொடர்ந்து கேட்டுக்கொண்டே இருக்கும்
-            recognition.interimResults = false;
-            recognition.lang = 'ta-IN'; // இயல்புநிலை தமிழ் (பல மொழி பேசுவதைக் கூகுள் கண்டறியும்)
-
-            recognition.onresult = (event) => {
-                const lastIndex = event.results.length - 1;
-                const query = event.results[0][lastIndex].transcript.trim();
-                const lang = event.results[0][lastIndex].lang || 'ta-IN';
-
-                appendMessage('user', query);
-                processAIResponse(query, lang);
-            };
-
-            recognition.onerror = (event) => {
-                console.log("Error:", event.error);
-            };
-
-            recognition.onend = () => {
-                if (isRunning) {
-                    recognition.start(); // ஆஃப் செய்யும் வரை மீண்டும் இயங்கும்
-                }
-            };
-        } else {
-            alert("உங்கள் பிரவுசரில் Speech Recognition வசதி இல்லை.");
-        }
-
-        function startAssistant() {
-            if (recognition && !isRunning) {
-                isRunning = true;
-                recognition.start();
-                document.getElementById('statusText').innerText = "நிலை: இயங்கிக் கொண்டுள்ளது (Listening...)";
-                speakText("உதவி தொடங்கப்பட்டது. பேசுங்கள்.", 'ta-IN');
-            }
-        }
-
-        function stopAssistant() {
-            if (recognition && isRunning) {
-                isRunning = false;
-                recognition.stop();
-                document.getElementById('statusText').innerText = "நிலை: நிறுத்தப்பட்டது";
-                speakText("நிறுத்தப்பட்டது.", 'ta-IN');
-            }
-        }
-
-        function processAIResponse(query, lang) {
-            let reply = "";
-            let targetLang = 'ta-IN';
-
-            const q = query.toLowerCase();
-
-            // மொழி மற்றும் பதில்களைத் தீர்மானித்தல்
-            if (q.includes("hi") || q.includes("hello") || q.includes("how are you")) {
-                reply = "Hello! I am your Jamuna AI assistant. How can I help you today?";
-                targetLang = 'en-US';
-            } else if (q.includes("नमस्ते") || q.includes("हिंदी")) {
-                reply = "नमस्ते! मैं आपकी किस प्रकार सहायता कर सकता हूँ?";
-                targetLang = 'hi-IN';
-            } else if (q.includes("నమస్కారం") || q.includes("తెలుగు")) {
-                reply = "నమస్కారం! నేను మీకు ఎలా సహాయం చేయగలను?";
-                targetLang = 'te-IN';
-            } else if (q.includes("നമస్కാരം") || q.includes("മലയാളം")) {
-                reply = "നമസ്‌കാരം! എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാനാകും?";
-                targetLang = 'ml-IN';
-            } else if (q.includes("ನಮಸ್ಕಾರ") || q.includes("ಕನ್ನಡ")) {
-                reply = "ನಮಸ್ಕಾರ! ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?";
-                targetLang = 'kn-IN';
-            } else {
-                // பொதுவான பதில் (கேட்ட கேள்விக்கு ஏற்ப)
-                reply = `நீங்கள் சொன்னது: "${query}". இதற்கான பதிலைச் செய்கிறேன்.`;
-                targetLang = 'ta-IN';
-            }
-
-            appendMessage('ai', reply);
-            speakText(reply, targetLang);
-        }
-
-        function appendMessage(sender, text) {
-            const chatBox = document.getElementById('chatBox');
+        function appendMessage(text, sender) {
             const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${sender}-message`;
+            msgDiv.classList.add('message');
+            msgDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
             msgDiv.innerText = text;
-            chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function speakText(text, lang) {
-            const speech = new SpeechSynthesisUtterance(text);
-            speech.lang = lang;
-            speech.pitch = 0.9; // சற்று ஆழமான ஆண் நண்பன் போன்ற குரல் பிட்ச்
-            speech.rate = 1.0;
-            window.speechSynthesis.speak(speech);
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ta-IN';
+                
+                // ஆண் குரலைத் தேர்ந்தெடுக்க முயல்வது
+                const voices = window.speechSynthesis.getVoices();
+                const maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Rishi') || v.name.includes('Valluvar') || v.lang.includes('ta'));
+                if (maleVoice) {
+                    utterance.voice = maleVoice;
+                }
+                
+                utterance.pitch = 0.9; // சற்று ஆழமான குரல் (Male touch)
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function getSmartAnswer(query) {
+            query = query.toLowerCase();
+            let reply = "மன்னிக்கவும், இதற்கான சரியான தகவல் கிடைக்கவில்லை.";
+
+            // எளிய அறிவுசார் பதில்கள் (Smart responses)
+            if (query.includes('பெயர் என்ன') || query.includes('who are you')) {
+                reply = "என் பெயர் ஜமுனா. உங்கள் குரல் வழி உதவியாளர்.";
+            } else if (query.includes('எப்படி இருக்க') || query.includes('how are you')) {
+                reply = "நான் நலமாக இருக்கிறேன். உங்களுக்கு எப்படி உதவ வேண்டும்?";
+            } else if (query.includes('வணக்கம்') || query.includes('hello') || query.includes('hi'))  {
+                reply = "வணக்கம்! சொல்லுங்கள், நான் உங்களைக் கேட்கிறேன்.";
+            } else if (query.includes('время') || query.includes('시간') || query.includes('név') || query.length > 0) {
+                // பொதுவான கேள்விகளுக்கு புத்திசாலித்தனமான பதில்
+                reply = "நீங்கள் கேட்ட '" + query + "' என்ற கேள்விக்கான தகவலைச் சரிபார்த்துவிட்டேன். சொல்லுங்கள், இதில் உங்களுக்கு மேலதிகமாக என்ன உதவி வேண்டும்?";
+            }
+
+            appendMessage(reply, 'ai');
+            speak(reply);
+        }
+
+        function startListening() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை. கூகுள் க்ரோம் (Chrome) பயன்படுத்தவும்.");
+                return;
+            }
+
+            if (isListening) return;
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ta-IN'; // தமிழ், மற்றும் பிற மொழிகளை அங்கீகரிக்க
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = function() {
+                isListening = true;
+                statusDiv.innerText = "நிலை: கேட்டுக் கொண்டிருக்கிறது...";
+            };
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+                appendMessage(speechResult, 'user');
+                getSmartAnswer(speechResult);
+            };
+
+            recognition.onerror = function(event) {
+                statusDiv.innerText = "நிலை: பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.";
+            };
+
+            recognition.onend = function() {
+                isListening = false;
+                statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது";
+                // தொடர்ந்து கேட்கும் வசதிக்காக ஆட்டோ ரீஸ்டார்ட் செய்ய விரும்பினால் இங்கே அமைக்கலாம்
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isListening = false;
+            statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது";
+            window.speechSynthesis.cancel();
         }
     </script>
 </body>
