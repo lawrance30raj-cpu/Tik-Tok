@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamuna AI Voice Assistant</title>
+    <!-- PWA Manifest Link (உங்களது சர்வரில் ஹோஸ்ட் செய்யும்போது வேலை செய்யும்) -->
+    <link rel="manifest" href="manifest.json">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 650px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #00d2ff;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: #0084ff;
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.15);
+            color: #e0e0e0;
+            border-bottom-left-radius: 2px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .btn-start {
+            background: #00d2ff;
+            color: #000;
+        }
+
+        .btn-stop {
+            background: #ff416c;
+            color: #fff;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .status {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #00d2ff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-robot"></i> ஜமுனா AI உதவி</h1>
+            <p>தமிழ், English, हिन्दी, తెలుగు, മലയാളം, ಕನ್ನಡ</p>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+            <div class="message ai-message">
+                வணக்கம்! Start பட்டனை அழுத்திப் பேசுங்கள்.
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-start" onclick="startAssistant()">ON (தொடங்கு)</button>
+            <button class="btn btn-stop" onclick="stopAssistant()">OFF (நிறுத்து)</button>
+        </div>
+
+        <div class="status" id="statusText">நிலை: ஆஃப் செய்யப்பட்டுள்ளது</div>
+    </div>
+
+    <script>
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isRunning = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true; // தொடர்ந்து கேட்டுக்கொண்டே இருக்கும்
+            recognition.interimResults = false;
+            recognition.lang = 'ta-IN'; // இயல்புநிலை தமிழ் (பல மொழி பேசுவதைக் கூகுள் கண்டறியும்)
+
+            recognition.onresult = (event) => {
+                const lastIndex = event.results.length - 1;
+                const query = event.results[0][lastIndex].transcript.trim();
+                const lang = event.results[0][lastIndex].lang || 'ta-IN';
+
+                appendMessage('user', query);
+                processAIResponse(query, lang);
+            };
+
+            recognition.onerror = (event) => {
+                console.log("Error:", event.error);
+            };
+
+            recognition.onend = () => {
+                if (isRunning) {
+                    recognition.start(); // ஆஃப் செய்யும் வரை மீண்டும் இயங்கும்
+                }
+            };
+        } else {
+            alert("உங்கள் பிரவுசரில் Speech Recognition வசதி இல்லை.");
+        }
+
+        function startAssistant() {
+            if (recognition && !isRunning) {
+                isRunning = true;
+                recognition.start();
+                document.getElementById('statusText').innerText = "நிலை: இயங்கிக் கொண்டுள்ளது (Listening...)";
+                speakText("உதவி தொடங்கப்பட்டது. பேசுங்கள்.", 'ta-IN');
+            }
+        }
+
+        function stopAssistant() {
+            if (recognition && isRunning) {
+                isRunning = false;
+                recognition.stop();
+                document.getElementById('statusText').innerText = "நிலை: நிறுத்தப்பட்டது";
+                speakText("நிறுத்தப்பட்டது.", 'ta-IN');
+            }
+        }
+
+        function processAIResponse(query, lang) {
+            let reply = "";
+            let targetLang = 'ta-IN';
+
+            const q = query.toLowerCase();
+
+            // மொழி மற்றும் பதில்களைத் தீர்மானித்தல்
+            if (q.includes("hi") || q.includes("hello") || q.includes("how are you")) {
+                reply = "Hello! I am your Jamuna AI assistant. How can I help you today?";
+                targetLang = 'en-US';
+            } else if (q.includes("नमस्ते") || q.includes("हिंदी")) {
+                reply = "नमस्ते! मैं आपकी किस प्रकार सहायता कर सकता हूँ?";
+                targetLang = 'hi-IN';
+            } else if (q.includes("నమస్కారం") || q.includes("తెలుగు")) {
+                reply = "నమస్కారం! నేను మీకు ఎలా సహాయం చేయగలను?";
+                targetLang = 'te-IN';
+            } else if (q.includes("നമస్కാരം") || q.includes("മലയാളം")) {
+                reply = "നമസ്‌കാരം! എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാനാകും?";
+                targetLang = 'ml-IN';
+            } else if (q.includes("ನಮಸ್ಕಾರ") || q.includes("ಕನ್ನಡ")) {
+                reply = "ನಮಸ್ಕಾರ! ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?";
+                targetLang = 'kn-IN';
+            } else {
+                // பொதுவான பதில் (கேட்ட கேள்விக்கு ஏற்ப)
+                reply = `நீங்கள் சொன்னது: "${query}". இதற்கான பதிலைச் செய்கிறேன்.`;
+                targetLang = 'ta-IN';
+            }
+
+            appendMessage('ai', reply);
+            speakText(reply, targetLang);
+        }
+
+        function appendMessage(sender, text) {
+            const chatBox = document.getElementById('chatBox');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}-message`;
+            msgDiv.innerText = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function speakText(text, lang) {
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = lang;
+            speech.pitch = 0.9; // சற்று ஆழமான ஆண் நண்பன் போன்ற குரல் பிட்ச்
+            speech.rate = 1.0;
+            window.speechSynthesis.speak(speech);
+        }
+    </script>
+</body>
+</html>
