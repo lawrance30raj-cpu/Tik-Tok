@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jamuna AI - Gemini Assistant</title>
+    <title>Jamuna AI - Gemini Voice Assistant</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -84,11 +84,11 @@
 </head>
 <body>
 
-    <header>🎙️ ஜமுனா AI - ஜெமினி குரல் உதவியாளர்</header>
+    <header>🎙️ ஜமுனா AI - குரல் உதவியாளர்</header>
     <div id="status">நிலை: தயார். 'ON' அழுத்தவும்</div>
     
     <div id="chat-container">
-        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. 'ON' பொத்தானை அழுத்தி என்னிடம் பேசுங்கள், உடனே பதிலளிக்கிறேன்!</div>
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. புதிய API Key இணைக்கப்பட்டுள்ளது. 'ON' கொடுத்து என்னுடன் பேசுங்கள்!</div>
     </div>
 
     <div id="controls">
@@ -102,8 +102,8 @@
         let recognition;
         let active = false;
 
-        // உங்கள் API Key இங்கே சரியாக இணைக்கப்பட்டுள்ளது
-        const GEMINI_API_KEY = "AQ.Ab8RN6K0rq00yE-ZAA9uILkZDdMbcy4CHbXcU0Zg1I8Aq2dYCA";
+        // புதிய மற்றும் சரியான API Key இங்கே இணைக்கப்பட்டுள்ளது
+        const GEMINI_API_KEY = "AQ.Ab8RN6KYpwwyqO6uBdKS8JjLNNTrNY5sUiYKNiNR8bUS_Ni2hA";
 
         function addMsg(text, sender) {
             const div = document.createElement('div');
@@ -111,8 +111,20 @@
             div.innerText = text;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // சேட் ஹிஸ்டரியை பிரவுசரில் சேமிக்க
+            localStorage.setItem('jamuna_chat_history', chatContainer.innerHTML);
             return div;
         }
+
+        // பக்கம் திறக்கும்போது பழைய சேட் இருந்தால் காட்ட
+        window.onload = function() {
+            const savedChat = localStorage.getItem('jamuna_chat_history');
+            if(savedChat) {
+                chatContainer.innerHTML = savedChat;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        };
 
         function speak(text, callback) {
             if ('speechSynthesis' in window) {
@@ -143,7 +155,7 @@
                     body: JSON.stringify({
                         contents: [{
                             parts: [{
-                                text: "பயனர் தமிழில் கேட்கும் கேள்விக்கு நேரடியாகவும் தெளிவாகவும் சுருக்கமாக பதிலளிக்கவும்: " + query
+                                text: "நீங்கள் ஜமுனா என்ற குரல் உதவியாளர். பயனர் தமிழில் கேட்கும் கேள்விக்கு நேரடியாகவும் தெளிவாகவும் சுருக்கமாக பதிலளிக்கவும்: " + query
                             }]
                         }]
                     })
@@ -161,6 +173,8 @@
                 }
 
                 addMsg(reply, 'ai');
+                
+                // பதில் பேசி முடித்ததும் தானாகவே அடுத்த குரலைக் கேட்க ஆரம்பிக்கும்
                 speak(reply, () => {
                     if (active) {
                         setTimeout(listenVoice, 500);
