@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jamuna AI - Voice Assistant</title>
+    <title>Jamuna AI - Continuous Voice Chat</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -84,11 +84,11 @@
 </head>
 <body>
 
-    <header>🎙️ ஜமுனா AI - நேரடி இணையத் தேடல்</header>
-    <div id="status">நிலை: தயார் நிலையில் உள்ளது. 'ON' அழுத்தவும்.</div>
+    <header>🎙️ ஜமுனா AI - தொடர்ச்சியான குரல் உரையாடல்</header>
+    <div id="status">நிலை: தயார். 'ON' அழுத்தவும்</div>
     
-    <div id="chat-container">
-        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. ஆன் செய்துவிட்டு என்னிடம் எதைக் கேட்டாலும் இன்டர்நெட்டில் தேடிப் பதிலளிக்கிறேன்!</div>
+    <div id="chat-container" id="chatHistoryBox">
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. 'ON' கொடுத்த பிறகு என்னிடம் தொடர்ந்து பேசலாம்; ஒவ்வொரு முறையும் பட்டன் அழுத்தத் தேவையில்லை!</div>
     </div>
 
     <div id="controls">
@@ -102,14 +102,28 @@
         let recognition;
         let active = false;
 
+        const GEMINI_API_KEY = "AQ.Ab8RN6K0rq00yE-ZAA9uILkZDdMbcy4CHbXcU0Zg1I8Aq2dYCA";
+
         function addMsg(text, sender) {
             const div = document.createElement('div');
             div.className = `message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
             div.innerText = text;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // சேட் ஹிஸ்டரியை போனில் சேமிக்க
+            localStorage.setItem('jamuna_chat_history', chatContainer.innerHTML);
             return div;
         }
+
+        // பக்கம் திறக்கும்போது பழைய சேட் இருந்தால் காட்ட
+        window.onload = function() {
+            const savedChat = localStorage.getItem('jamuna_chat_history');
+            if(savedChat) {
+                chatContainer.innerHTML = savedChat;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        };
 
         function speak(text, callback) {
             if ('speechSynthesis' in window) {
@@ -129,44 +143,48 @@
         }
 
         async function processQuery(query) {
-            statusDiv.innerText = "நிலை: இணையத்தில் தேடுகிறது...";
-            let q = query.toLowerCase().trim();
-            let reply = "";
+            statusDiv.innerText = "நிலை: ஜமுனா யோசிக்கிறது...";
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: "நீங்கள் ஜமுனா என்ற குரல் உதவியாளர். பயனர் கேட்கும் கேள்விக்கு தமிழில் சுருக்கமாக, தெளிவாக மற்றும் இயல்பாகப் பதிலளியுங்கள். கேள்வி: " + query
+                            }]
+                        }]
+                    })
+                });
 
-            if (q.includes('பெயர்') || q.includes('name')) {
-                reply = "என் பெயர் ஜமுனா. உங்களோடு பேசவும் தகவல்களைத் தேடவும் உருவாக்கப்பட்ட உதவியாளர்.";
-            } else if (q.includes('எப்படி இருக்க') || q.includes('how are you')) {
-                reply = "நான் ரொம்ப நல்லா இருக்கேன்! உங்களுக்கு என்ன தகவல் வேண்டும்?";
-            } else if (q.includes('வணக்கம்') || q.includes('ஹலோ') || q.includes('hi')) {
-                reply = "வணக்கம்! சொல்லுங்கள், என்ன தேட வேண்டும்?";
-            } else {
-                try {
-                    // இணையத்திலிருந்து நேரடித் தேடல்
-                    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
-                    const data = await res.json();
+                const data = await response.json();
+                let reply = "";
 
-                    if (data.AbstractText && data.AbstractText !== "") {
-                        reply = data.AbstractText;
-                    } else {
-                        // விக்கிபீடியா காப்புத் தேடல்
-                        const wikiRes = await fetch(`https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
-                        const wikiData = await wikiRes.json();
-                        
-                        if (wikiData.query && wikiData.query.search.length > 0) {
-                            reply = wikiData.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
-                        } else {
-                            reply = "மன்னிக்கவும், நீங்கள் கேட்ட '" + query + "' பற்றிய தகவல் இணையத்தில் உடனடியாகக் கிடைக்கவில்லை.";
-                        }
-                    }
-                } catch(e) {
-                    reply = "இணைய இணைப்பில் சிறிய தாமதம். மீண்டும் சொல்லுங்கள்.";
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    reply = data.candidates[0].content.parts[0].text;
+                } else {
+                    reply = "மன்னிக்கவும், என்னால் இப்போது பதிலளிக்க முடியவில்லை.";
                 }
-            }
 
-            addMsg(reply, 'ai');
-            speak(reply, () => {
-                if (active) listenVoice();
-            });
+                addMsg(reply, 'ai');
+                
+                // பதில் பேசி முடித்ததும் தானாகவே அடுத்த குரலைக் கேட்க ஆரம்பிக்கும்
+                speak(reply, () => {
+                    if (active) {
+                        setTimeout(listenVoice, 500);
+                    }
+                });
+
+            } catch (error) {
+                let errReply = "நெட்வொர்க் இணைப்புச் சிக்கல். மீண்டும் பேசவும்.";
+                addMsg(errReply, 'ai');
+                speak(errReply, () => {
+                    if (active) setTimeout(listenVoice, 500);
+                });
+            }
         }
 
         function listenVoice() {
@@ -183,7 +201,7 @@
             recognition.interimResults = false;
 
             recognition.onstart = function() {
-                statusDiv.innerText = "நிலை: உங்களைக் கவனமாகக் கேட்டுக்கொண்டிருக்கிறது...";
+                statusDiv.innerText = "நிலை: உங்களைக் கவனமாகக் கேட்டுக்கொண்டிருக்கிறது... பேசுங்கள்!";
             };
 
             recognition.onresult = function(e) {
@@ -193,7 +211,13 @@
             };
 
             recognition.onerror = function() {
-                if (active) setTimeout(listenVoice, 1000);
+                if (active) {
+                    setTimeout(listenVoice, 1000);
+                }
+            };
+
+            recognition.onend = function() {
+                // ஒருவேளை நடுவில் நின்றால் ஆட்டோமேட்டிக்காகத் தொடர
             };
 
             try {
