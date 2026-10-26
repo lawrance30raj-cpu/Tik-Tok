@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jamuna AI - Gemini Assistant</title>
+    <title>Jamuna AI - குரல் உதவியாளர்</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: #fff;
+            background-color: #0d1b2a;
+            color: #ffffff;
             margin: 0;
             padding: 0;
             display: flex;
@@ -16,225 +16,171 @@
             height: 100vh;
         }
         header {
-            background: rgba(0, 0, 0, 0.4);
+            background-color: #1b263b;
             padding: 15px;
             text-align: center;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: bold;
+            border-bottom: 2px solid #415a77;
         }
         #chat-container {
             flex: 1;
-            padding: 15px;
             overflow-y: auto;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 15px;
         }
         .message {
-            max-width: 85%;
-            padding: 12px 16px;
+            max-width: 80%;
+            padding: 12px 18px;
             border-radius: 15px;
             font-size: 1rem;
             line-height: 1.5;
-            word-wrap: break-word;
         }
         .user-message {
-            background: #007bff;
+            background-color: #0077b6;
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 2px;
         }
         .ai-message {
-            background: #ffffff;
-            color: #333;
+            background-color: #415a77;
+            color: white;
             align-self: flex-start;
             border-bottom-left-radius: 2px;
         }
         #controls {
             padding: 20px;
-            background: rgba(0, 0, 0, 0.5);
+            background-color: #1b263b;
             display: flex;
-            justify-content: space-around;
-            align-items: center;
+            gap: 15px;
+            justify-content: center;
+            border-top: 2px solid #415a77;
         }
         button {
-            padding: 12px 30px;
+            padding: 15px 30px;
             font-size: 1.1rem;
             font-weight: bold;
             border: none;
             border-radius: 30px;
             cursor: pointer;
+            color: white;
         }
         #start-btn {
-            background: #28a745;
-            color: white;
+            background-color: #2b9348;
         }
         #stop-btn {
-            background: #dc3545;
-            color: white;
-        }
-        #status {
-            text-align: center;
-            padding: 8px;
-            font-size: 0.9rem;
-            background: rgba(0,0,0,0.3);
-            color: #00ffcc;
+            background-color: #d90429;
         }
     </style>
 </head>
 <body>
 
-    <header>🎙️ ஜமுனா AI - குரல் உதவியாளர்</header>
-    <div id="status">நிலை: தயார். 'ON' அழுத்தவும்</div>
-    
+    <header>ஜமுனா AI - குரல் உதவியாளர்</header>
+
     <div id="chat-container">
         <div class="message ai-message">வணக்கம்! நான் ஜமுனா. புதிய API Key இணைக்கப்பட்டுள்ளது. பேசுங்கள்!</div>
     </div>
 
     <div id="controls">
-        <button id="start-btn" onclick="startChat()">ON (தொடங்கு)</button>
-        <button id="stop-btn" onclick="stopChat()">OFF (நிறுத்து)</button>
+        <button id="start-btn" onclick="startListening()">ON (தொடங்கு)</button>
+        <button id="stop-btn" onclick="stopListening()">OFF (நிறுத்து)</button>
     </div>
 
     <script>
+        // உங்களது API Key நேரடியாக இங்கே இணைக்கப்பட்டுள்ளது
+        const apiKey = "AQ.Ab8RN6Iu93A3f4TWcc85GLmb8FaEvNnPBk2gJo1NGiCmtbNjYQ";
+        
         const chatContainer = document.getElementById('chat-container');
-        const statusDiv = document.getElementById('status');
-        let recognition;
-        let active = false;
 
-        // உங்கள் புதிய API Key இங்கே சரியாக இணைக்கப்பட்டுள்ளது
-        const GEMINI_API_KEY = "AQ.Ab8RN6Iu93A3f4TWcc85GLmb8FaEvNnPBk2gJo1NGiCmtbNjYQ";
-
-        function addMsg(text, sender) {
-            const div = document.createElement('div');
-            div.className = `message ${sender === 'user' ? 'user-message' : 'ai-message'}`;
-            div.innerText = text;
-            chatContainer.appendChild(div);
+        function appendMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(sender === 'user' ? 'user-message' : 'ai-message');
+            messageDiv.innerText = text;
+            chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            localStorage.setItem('jamuna_chat_history', chatContainer.innerHTML);
-            return div;
         }
 
-        window.onload = function() {
-            const savedChat = localStorage.getItem('jamuna_chat_history');
-            if(savedChat) {
-                chatContainer.innerHTML = savedChat;
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-        };
+        async function callGeminiAPI(promptText) {
+            appendMessage(promptText, 'user');
+            appendMessage("ஜமுனா சிந்தித்துக்கொண்டிருக்கிறது...", 'ai');
 
-        function speak(text, callback) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'ta-IN';
-                utter.pitch = 0.9;
-                utter.rate = 1.0;
-                
-                utter.onend = function() {
-                    if (callback) callback();
-                };
-                window.speechSynthesis.speak(utter);
-            } else {
-                if (callback) callback();
-            }
-        }
-
-        async function processQuery(query) {
-            statusDiv.innerText = "நிலை: ஜமுனா சிந்தித்துக்கொண்டிருக்கிறது...";
-            
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: "நீங்கள் ஜமுனா என்ற குரல் உதவியாளர். பயனர் தமிழில் கேட்கும் கேள்விக்கு நேரடியாகவும் தெளிவாகவும் சுருக்கமாக பதிலளிக்கவும்: " + query
-                            }]
-                        }]
+                        contents: [{ parts: [{ text: promptText }] }]
                     })
                 });
 
                 const data = await response.json();
-                let reply = "";
-
-                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                    reply = data.candidates[0].content.parts[0].text;
-                } else if (data.error) {
-                    reply = "ஏபிஐ பிழை: " + data.error.message;
-                } else {
-                    reply = "மன்னிக்கவும், என்னால் இப்போது பதிலளிக்க முடியவில்லை.";
-                }
-
-                addMsg(reply, 'ai');
                 
-                speak(reply, () => {
-                    if (active) {
-                        setTimeout(listenVoice, 500);
-                    }
-                });
+                // கடைசியாக வந்த "சிந்தித்துக்கொண்டிருக்கிறது..." என்ற மெசேஜை நீக்குதல்
+                chatContainer.removeChild(chatContainer.lastChild);
 
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const aiReply = data.candidates[0].content.parts[0].text;
+                    appendMessage(aiReply, 'ai');
+                    speakText(aiReply);
+                } else {
+                    appendMessage("மன்னிக்கவும், என்னால் பதில் அளிக்க முடியவில்லை.", 'ai');
+                }
             } catch (error) {
-                let errReply = "இணைப்புச் சிக்கல் ஏற்பட்டுள்ளது. மீண்டும் பேசவும்.";
-                addMsg(errReply, 'ai');
-                speak(errReply, () => {
-                    if (active) setTimeout(listenVoice, 500);
-                });
+                chatContainer.removeChild(chatContainer.lastChild);
+                appendMessage("ஏபிஐ பிழை: " + error.message, 'ai');
             }
         }
 
-        function listenVoice() {
-            if (!active) return;
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRec) {
-                alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை.");
-                return;
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ta-IN';
+                window.speechSynthesis.speak(utterance);
             }
+        }
 
-            recognition = new SpeechRec();
+        // குரல் உள்ளீடு (Speech Recognition) அமைப்பு
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
             recognition.lang = 'ta-IN';
             recognition.continuous = false;
             recognition.interimResults = false;
 
-            recognition.onstart = function() {
-                statusDiv.innerText = "நிலை: கேட்டுக்கொண்டுள்ளது... பேசுங்கள்!";
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                callGeminiAPI(transcript);
             };
 
-            recognition.onresult = function(e) {
-                const text = e.results[0][0].transcript;
-                addMsg(text, 'user');
-                processQuery(text);
+            recognition.onerror = function(event) {
+                console.error("Speech recognition error", event.error);
             };
+        } else {
+            alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை.");
+        }
 
-            recognition.onerror = function() {
-                if (active) {
-                    setTimeout(listenVoice, 1000);
+        function startListening() {
+            if (recognition) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log("Already started");
                 }
-            };
-
-            try {
-                recognition.start();
-            } catch(err) {
-                console.log(err);
             }
         }
 
-        function startChat() {
-            if (active) return;
-            active = true;
-            statusDiv.innerText = "நிலை: உரையாடல் தொடங்கியது...";
-            listenVoice();
-        }
-
-        function stopChat() {
-            active = false;
-            if (recognition) recognition.stop();
-            window.speechSynthesis.cancel();
-            statusDiv.innerText = "நிலை: நிறுத்தப்பட்டது.";
+        function stopListening() {
+            if (recognition) {
+                recognition.stop();
+            }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
         }
     </script>
 </body>
