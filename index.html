@@ -84,11 +84,11 @@
 </head>
 <body>
 
-    <header>🎙️ ஜமுனா AI - நேரடி உரையாடல்</header>
-    <div id="status">நிலை: ஆன் செய்ய 'ON' அழுத்தவும்</div>
+    <header>🎙️ ஜமுனா AI - நேரடி இணையத் தேடல்</header>
+    <div id="status">நிலை: தயார் நிலையில் உள்ளது. 'ON' அழுத்தவும்.</div>
     
     <div id="chat-container">
-        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. ஆன் செய்துவிட்டு என்னிடம் இயல்பாகப் பேசுங்கள், நான் பதிலளிக்கிறேன்.</div>
+        <div class="message ai-message">வணக்கம்! நான் ஜமுனா. ஆன் செய்துவிட்டு என்னிடம் எதைக் கேட்டாலும் இன்டர்நெட்டில் தேடிப் பதிலளிக்கிறேன்!</div>
     </div>
 
     <div id="controls">
@@ -129,33 +129,37 @@
         }
 
         async function processQuery(query) {
-            statusDiv.innerText = "நிலை: யோசித்து பதிலளிக்கிறது...";
+            statusDiv.innerText = "நிலை: இணையத்தில் தேடுகிறது...";
             let q = query.toLowerCase().trim();
             let reply = "";
 
-            // தனிப்பட்ட மற்றும் இயல்பான உரையாடல்களுக்கான பதில்கள்
             if (q.includes('பெயர்') || q.includes('name')) {
-                reply = "என் பெயர் ஜமுனா. உங்களுடன் பேசுவதற்காக உருவாக்கப்பட்ட குரல் உதவியாளர்.";
+                reply = "என் பெயர் ஜமுனா. உங்களோடு பேசவும் தகவல்களைத் தேடவும் உருவாக்கப்பட்ட உதவியாளர்.";
             } else if (q.includes('எப்படி இருக்க') || q.includes('how are you')) {
-                reply = "நான் ரொம்ப நல்லா இருக்கேன் தோழா! சொல்லுங்க, உங்களுக்கு என்ன உதவி செய்யணும்?";
-            } else if (q.includes('पीसीओडी') || q.includes('pcod') || q.includes('பிசிஓடி')) {
-                reply = "PCOD என்பது பெண்களின் ஹார்மோன் மாற்றங்களால் ஏற்படும் ஒரு உடல்நலப் பிரச்சினை ஆகும். இது மாதவிடாய் சுழற்சியைப் பாதிக்கலாம்.";
-            } else if (q.includes('फुल फॉर्म') || q.includes('full form') || q.includes('ஃபுல் பார்ம்')) {
-                reply = "நீங்கள் எந்த வார்த்தையின் முழு வடிவம் (Full Form) கேட்கிறீர்கள் என்பதைத் தெளிவாகச் சொன்னால் என்னால் சொல்ல முடியும்.";
+                reply = "நான் ரொம்ப நல்லா இருக்கேன்! உங்களுக்கு என்ன தகவல் வேண்டும்?";
             } else if (q.includes('வணக்கம்') || q.includes('ஹலோ') || q.includes('hi')) {
-                reply = "வணக்கம்! சொல்லுங்க, என்ன பேசலாம்?";
+                reply = "வணக்கம்! சொல்லுங்கள், என்ன தேட வேண்டும்?";
             } else {
-                // இணையத்தில் தேடுதல்
                 try {
-                    const res = await fetch(`https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
+                    // இணையத்திலிருந்து நேரடித் தேடல்
+                    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
                     const data = await res.json();
-                    if (data.query && data.query.search.length > 0) {
-                        reply = data.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
+
+                    if (data.AbstractText && data.AbstractText !== "") {
+                        reply = data.AbstractText;
                     } else {
-                        reply = "நீங்கள் கேட்ட '" + query + "' என்ற கேள்விக்கான விவரங்கள் எனக்குப் புரியும்படி சுருக்கமாகச் சொல்லுங்கள், நான் பதிலளிக்கிறேன்.";
+                        // விக்கிபீடியா காப்புத் தேடல்
+                        const wikiRes = await fetch(`https://ta.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
+                        const wikiData = await wikiRes.json();
+                        
+                        if (wikiData.query && wikiData.query.search.length > 0) {
+                            reply = wikiData.query.search[0].snippet.replace(/<\/?[^>]+(>|$)/g, "");
+                        } else {
+                            reply = "மன்னிக்கவும், நீங்கள் கேட்ட '" + query + "' பற்றிய தகவல் இணையத்தில் உடனடியாகக் கிடைக்கவில்லை.";
+                        }
                     }
                 } catch(e) {
-                    reply = "மன்னிக்கவும், நெட்வொர்க் சிறிய தாமதம். மீண்டும் சொல்லுங்கள்.";
+                    reply = "இணைய இணைப்பில் சிறிய தாமதம். மீண்டும் சொல்லுங்கள்.";
                 }
             }
 
@@ -169,7 +173,7 @@
             if (!active) return;
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRec) {
-                alert("உங்கள் பிரவுசர் குரலை ஆதரிக்கவில்லை.");
+                alert("உங்கள் பிரவுசர் குரல் உள்ளீட்டை ஆதரிக்கவில்லை.");
                 return;
             }
 
